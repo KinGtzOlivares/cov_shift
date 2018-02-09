@@ -12,7 +12,6 @@ import matplotlib.transforms as mtransforms
 from matplotlib.legend_handler import HandlerPathCollection
 from matplotlib import cm
 
-
 def gaussian_mixture(n, means, covs, probs):
     k, d = means.shape[0], means.shape[1]
     assert means.shape[0] == covs.shape[0]
@@ -35,9 +34,26 @@ def toy_class(x):
     y = np.random.choice([0, 1], p = [p, 1-p])
     return y
 
+def get_data_sugiyama(n_train, n_test):
+    means_train = np.array([[-2, 3], [2, 3]])
+    covs_train = np.array([[[1, 0],[0, 2]],[[1, 0],[0, 2]]])
+    probs_train = np.array([.5, .5])
+    
+    means_test = np.array([[0, -1], [4, -1]])
+    covs_test = np.array([[[1, 0],[0, 1]],[[1, 0],[0, 1]]])
+    probs_test = np.array([.5, .5])
+    
+    X_train = gaussian_mixture(n_train, means_train, covs_train, probs_train)
+    X_test = gaussian_mixture(n_test, means_test, covs_test, probs_test)
+    
+    y_train = conditional_expectation(toy_class, X_train)
+    y_test = conditional_expectation(toy_class, X_test)
+
+    return X_train, y_train, X_test, y_test
+
+
 def graph_data1(config, data, path):
-    n_train, n_test = config["n_train"], config["n_test"]
-    X_train, y_train, X_test, y_test = data["X_train"], data["y_train"], data["X_test"], data["y_test"]
+    X_train, X_test = data["X_train"], data["X_test"]
     
     x0min, x0max = -4, 7
     x1min, x1max = -3, 7
@@ -62,7 +78,7 @@ def graph_data1(config, data, path):
 
     fig = plt.figure()
     ax = fig.gca()
-    ax.set_xlim(x0min, x1max)
+    ax.set_xlim(x0min, x0max)
     ax.set_ylim(x1min, x1max)
 
     # Contour plot, and label
@@ -81,13 +97,13 @@ def graph_data1(config, data, path):
     aux_x1 = (-1 * aux_x0)
     model_x0 = np.concatenate((model_x0, aux_x0))
     model_x1 = np.concatenate((model_x1, aux_x1))
-    line, = plt.plot(model_x0, model_x1, color = 'black', label = 'Conditional Expectation')
+    plt.plot(model_x0, model_x1, color = 'black', label = 'Conditional Expectation')
 
     ax.annotate('Negative', xy=(-3, 7), xytext=(-3, 6))
     ax.annotate('Positive', xy=(-3, 7), xytext=(1.5, 6))
 
     ax.annotate('Training', xy=(-3, 7), xytext=(5, 3))
-    ax.annotate('Test', xy=(-3, 7), xytext=(5, -1))
+    ax.annotate('Test', xy=(-3, 7), xytext=(5, -.9))
 
     plt.savefig(path)
 class HandlerMultiPathCollection(HandlerPathCollection):
@@ -105,7 +121,7 @@ def graph_data2(config, data, path):
     #https://stackoverflow.com/questions/31478077/how-to-make-two-markers-share-the-same-label-in-the-legend-using-matplotlib
     fig, ax = plt.subplots()
     #make some data to plot
-    n_train, n_test = config["n_train"], config["n_test"]
+    n_train = config["n_train"]
     X_train, y_train, X_test, y_test = data["X_train"], data["y_train"], data["X_test"], data["y_test"]
     x0_train, x1_train, x0_test, x1_test = X_train[:,0], X_train[:,1], X_test[:,0], X_test[:,1]
     x0, x1 = np.concatenate((x0_train, x0_test)), np.concatenate((x1_train, x1_test))
@@ -168,7 +184,7 @@ def graph_data2(config, data, path):
         edgecolors_test.append(plot.get_edgecolors()[0])
         facecolors_test.append(plot.get_facecolors()[0])
 
-    ax.set_xlim(x0min, x1max)
+    ax.set_xlim(x0min, x0max)
     ax.set_ylim(x1min, x1max)
 
     #make proxy artist out of a collection of markers
@@ -180,36 +196,19 @@ def graph_data2(config, data, path):
     plt.savefig(path)
 
 
- 
-
-
-
-
 def main():
     np.random.seed(seed=1234)
     root = '/Users/kdgutier/Desktop/cov_shift/'
-
-    means_train = np.array([[-2, 3], [2, 3]])
-    covs_train = np.array([[[1, 0],[0, 2]],[[1, 0],[0, 2]]])
-    probs_train = np.array([.5, .5])
-    
-    means_test = np.array([[0, -1], [4, -1]])
-    covs_test = np.array([[[1, 0],[0, 1]],[[1, 0],[0, 1]]])
-    probs_test = np.array([.5, .5])
     
     n_train, n_test = 60, 30
-    X_train = gaussian_mixture(n_train, means_train, covs_train, probs_train)
-    X_test = gaussian_mixture(n_test, means_test, covs_test, probs_test)
-    
-    y_train = conditional_expectation(toy_class, X_train)
-    y_test = conditional_expectation(toy_class, X_test)
-    
+    X_train, y_train, X_test, y_test = get_data_sugiyama(n_train, n_test)
+
     data = {"X_train": X_train, "y_train": y_train, "X_test": X_test, "y_test": y_test}
     config = {"n_train": n_train, "n_test": n_test}
     
     graph_data1(config, data, path = root+'images/sugiyama1.png')
     graph_data2(config, data, path = root+'images/sugiyama2.png')
-    
+
 
 
 
