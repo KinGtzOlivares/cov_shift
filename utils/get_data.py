@@ -5,7 +5,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
-from scipy.spatial import Delaunay
+from scipy.optimize import linprog
 #from sklearn import mixture
 
 def gaussian_mixture(n, means, covs, probs):
@@ -47,19 +47,28 @@ def get_data_sugiyama(n_train, n_test):
 
     return X_train, y_train, X_test, y_test
 
-def in_hull(p, hull):
-    if not isinstance(hull,Delaunay):
-        hull = Delaunay(hull)
-    return hull.find_simplex(p)>=0
+def in_hull(points, x):
+    n_points = len(points)
+    #n_dim = len(x)
+    c = np.zeros(n_points)
+    A = np.r_[points.T,np.ones((1,n_points))]
+    b = np.r_[x, np.ones(1)]
+    lp = linprog(c, A_eq=A, b_eq=b)
+    return lp.success
 
-def polygon_probability(X, n_clusters):
+def vertices_polygon(n_clusters, r):
+    V = np.zeros(shape = (n_clusters, 2))
+    for c in range(n_clusters):
+        V[c,:] = [r * math.cos(2*math.pi*c/n_clusters), r * math.sin(2*math.pi*c/n_clusters)]
+    return V
+
+def conditional_polygon(X, n_clusters):
     ngrid = 1000
     rs = np.array(np.linspace(1e-10, 8, ngrid))
-    hulls = []
+    Vs = []
     for n, r in np.ndenumerate(rs):
         V = vertices_polygon(n_clusters, r)
-        hull = ConvexHull(V)
-        hulls.append(hull)
+        Vs.append(V)
     
     rds = []
     for c in range(n_clusters):
@@ -69,18 +78,12 @@ def polygon_probability(X, n_clusters):
         for n in range(nx):
             rxmin = 100
             for h in range(ngrid):
-                if in_hull(X_c[n], hulls[n]) == True:
+                if in_hull(X_c[n], Vs[n]) == True:
                     rxmin = rs[h]
                     break
             rxs[n] = rxmin
         rds.append(rxs)
     return rds
-
-def vertices_polygon(n_clusters, r):
-    V = np.zeros(shape = (n_clusters, 2))
-    for c in range(n_clusters):
-        V[c,:] = [r * math.cos(2*math.pi*c/n_clusters), r * math.sin(2*math.pi*c/n_clusters)]
-    return V
 
 def get_population_parameters(n_clusters, r):
     mus = []
@@ -135,7 +138,8 @@ def main():
     V, mus, _, X = get_data_experiment(n_clusters, n_samples, r)
     #plot_polygon(V, mus, X, n_clusters)
 
-    #ver = polygon_probability(X, n_clusters)
+    ver = conditional_polygon(X, n_clusters)
+    print(ver)
 
 if __name__ == '__main__':
     main()
