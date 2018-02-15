@@ -19,15 +19,12 @@ def gaussian_mixture(n, means, covs, probs):
         samples[idx] = sample
     return samples
 
-def conditional_expectation(conditional_func, X):
+def conditional_sugiyama(X):
     y = np.zeros(shape=(X.shape[0]))
     for idx in range(X.shape[0]):
-        y[idx] = conditional_func(X[idx,:])
-    return y
-
-def conditional_sugiyama(x):
-    p = .5 * (1 + math.tanh(x[0]+min(0, x[1])))
-    y = np.random.choice([0, 1], p = [p, 1-p])
+        x = X[idx,:]
+        p = .5 * (1 + math.tanh(x[0]+min(0, x[1])))
+        y[idx] = np.random.choice([0, 1], p = [p, 1-p])
     return y
 
 def get_data_sugiyama(n_train, n_test):
@@ -42,8 +39,8 @@ def get_data_sugiyama(n_train, n_test):
     X_train = gaussian_mixture(n_train, means_train, covs_train, label_probs_train)
     X_test = gaussian_mixture(n_test, means_test, covs_test, label_probs_test)
     
-    y_train = conditional_expectation(conditional_sugiyama, X_train)
-    y_test = conditional_expectation(conditional_sugiyama, X_test)
+    y_train = conditional_sugiyama(X_train)
+    y_test = conditional_sugiyama(X_test)
 
     return X_train, y_train, X_test, y_test
 
@@ -62,7 +59,7 @@ def vertices_polygon(n_clusters, r):
         V[c,:] = [r * math.cos(2*math.pi*c/n_clusters), r * math.sin(2*math.pi*c/n_clusters)]
     return V
 
-def conditional_polygon(X, n_clusters, n_grid):
+def conditional_polygon(X, n_clusters, r, n_grid):
     rs = np.array(np.linspace(1e-10, 8, n_grid))
     Vs = []
     for n, r in np.ndenumerate(rs):
@@ -70,19 +67,24 @@ def conditional_polygon(X, n_clusters, n_grid):
         Vs.append(V)
     
     rds = []
+    Y = []
     for c in range(n_clusters):
         X_c = X[c][0]
         nx = X_c.shape[0]
         rxs = np.zeros(shape = (nx, 1))
+        ys = np.zeros(shape = (nx, 1))
         for n in range(nx):
-            rxmin = 100
+            rxsup = 100
             for h in range(n_grid):
                 if in_hull(Vs[n], X_c[n]) == True:
-                    rxmin = rs[h]
+                    rxsup = rs[h]
                     break
-            rxs[n] = rxmin
+            rxs[n] = rxsup
+            p = .5 * (1 + math.tanh(rxsup-r))
+            ys[n] = np.random.choice([0, 1], p = [p, 1-p])
         rds.append(rxs)
-    return rds
+        Y.append(ys)
+    return Y, rds
 
 def get_population_parameters(n_clusters, r):
     mus = []
@@ -105,7 +107,7 @@ def get_population_parameters(n_clusters, r):
         covs.append([cov_0, cov_1])
     return V, mus, covs
 
-def get_data_experiment(n_clusters, n_samples, r):
+def get_data_experiment(n_samples, n_clusters, r, n_grid):
     V, mus, covs = get_population_parameters(n_clusters, r)
     label_probs = np.array([.5, .5])
 
@@ -117,30 +119,35 @@ def get_data_experiment(n_clusters, n_samples, r):
             np.array([covs[c][0], covs[c][1]]), label_probs)
         X_cluster = np.repeat(c, n_cluster)
         X.append([X_c, X_cluster])
-    return V, mus, covs, X
+    
+    Y, _ = conditional_polygon(X, n_clusters, r, n_grid)
 
-def plot_polygon(V, mus, X, n_clusters):
+    return V, mus, covs, X, Y
+
+def plot_polygon(V, mus, X, Y, n_clusters):
     hull = ConvexHull(V)
     for simplex in hull.simplices:
         plt.plot(V[simplex,0], V[simplex,1], 'k-')
     
     #plot data
-    for n in range(n_clusters):
-        X_n = X[n][0]
-        plt.scatter(X_n[:,0], X_n[:,1])
+    for c in range(n_clusters):
+        X_c, y_c = X[c][0], Y[c]
+        y_c = y_c.flatten().tolist()
+        colors_c = ["#E99F51" if y <=0 else "#386D9D" for y in y_c]
+        plt.scatter(X_c[:,0], X_c[:,1], c=colors_c)
     plt.axis('equal')
     plt.show()
 
 def main():
-    n_clusters, r = 7, 4
+    n_clusters, r, n_grid = 6, 4, 20
     n_samples = 70
-    V, mus, _, X = get_data_experiment(n_clusters, n_samples, r)
-    #plot_polygon(V, mus, X, n_clusters)
+    V, mus, covs, X, Y = get_data_experiment(n_samples, n_clusters, r, n_grid)
+    plot_polygon(V, mus, X, Y, n_clusters)
 
-    n_grid = 20
-    ver = conditional_polygon(X, n_clusters, n_grid)
-    print(len(ver))
-    print(ver[0].shape)
+    #n_grid = 20
+    #ver = conditional_polygon(X, n_clusters, n_grid)
+    #print(len(ver))
+    #print(ver[0])
 
 if __name__ == '__main__':
     main()
