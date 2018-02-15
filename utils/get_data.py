@@ -47,12 +47,12 @@ def get_data_sugiyama(n_train, n_test):
 
     return X_train, y_train, X_test, y_test
 
-def in_hull(points, x):
-    n_points = len(points)
-    #n_dim = len(x)
-    c = np.zeros(n_points)
-    A = np.r_[points.T,np.ones((1,n_points))]
-    b = np.r_[x, np.ones(1)]
+def in_hull(V, x):
+    n_clusters, d = V.shape
+    x = np.reshape(x, (1, d))
+    c = np.zeros(n_clusters)
+    A = np.concatenate(( V.T, np.ones((1, n_clusters)) ), axis=0)
+    b = np.concatenate(( x.T, np.ones((1, 1)) ), axis=0)
     lp = linprog(c, A_eq=A, b_eq=b)
     return lp.success
 
@@ -62,9 +62,8 @@ def vertices_polygon(n_clusters, r):
         V[c,:] = [r * math.cos(2*math.pi*c/n_clusters), r * math.sin(2*math.pi*c/n_clusters)]
     return V
 
-def conditional_polygon(X, n_clusters):
-    ngrid = 1000
-    rs = np.array(np.linspace(1e-10, 8, ngrid))
+def conditional_polygon(X, n_clusters, n_grid):
+    rs = np.array(np.linspace(1e-10, 8, n_grid))
     Vs = []
     for n, r in np.ndenumerate(rs):
         V = vertices_polygon(n_clusters, r)
@@ -77,8 +76,8 @@ def conditional_polygon(X, n_clusters):
         rxs = np.zeros(shape = (nx, 1))
         for n in range(nx):
             rxmin = 100
-            for h in range(ngrid):
-                if in_hull(X_c[n], Vs[n]) == True:
+            for h in range(n_grid):
+                if in_hull(Vs[n], X_c[n]) == True:
                     rxmin = rs[h]
                     break
             rxs[n] = rxmin
@@ -134,12 +133,14 @@ def plot_polygon(V, mus, X, n_clusters):
 
 def main():
     n_clusters, r = 7, 4
-    n_samples = 500
+    n_samples = 70
     V, mus, _, X = get_data_experiment(n_clusters, n_samples, r)
     #plot_polygon(V, mus, X, n_clusters)
 
-    ver = conditional_polygon(X, n_clusters)
-    print(ver)
+    n_grid = 20
+    ver = conditional_polygon(X, n_clusters, n_grid)
+    print(len(ver))
+    print(ver[0].shape)
 
 if __name__ == '__main__':
     main()
