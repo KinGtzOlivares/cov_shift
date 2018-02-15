@@ -58,8 +58,8 @@ def main():
     
 
     model = svm_classifier(config, data)
-    plots.graph_data1(config, data, path = root+'images/sugiyama1.png')
-    plots.graph_data2(config, data, model0 = model, path = root+'images/sugiyama2.png')
+    plots.graph_data_sugiyama1(config, data, path = root+'images/sugiyama1.png')
+    plots.graph_data_sugiyama2(config, data, model0 = model, path = root+'images/sugiyama2.png')
 
 
 if __name__ == '__main__':

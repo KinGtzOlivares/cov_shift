@@ -10,7 +10,7 @@ import matplotlib.transforms as mtransforms
 from matplotlib.legend_handler import HandlerPathCollection
 from matplotlib import cm
 
-def graph_data1(config, data, path):
+def graph_data_sugiyama1(config, data, path):
     X_train, X_test = data["X_train"], data["X_test"]
     
     x0min, x0max = -4, 7
@@ -75,7 +75,7 @@ class HandlerMultiPathCollection(HandlerPathCollection):
                               )
         return p
 
-def graph_data2(config, data, model0, path):
+def graph_data_sugiyama2(config, data, model0, path):
     #https://stackoverflow.com/questions/31478077/how-to-make-two-markers-share-the-same-label-in-the-legend-using-matplotlib
     fig, ax = plt.subplots()  
     #make some data to plot
