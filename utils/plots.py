@@ -166,5 +166,5 @@ def graph_data_sugiyama2(config, data, model0, path):
     PC_train.set_transform(mtransforms.IdentityTransform())
     PC_test = mcol.PathCollection(paths_test, sizes_test, transOffset = ax.transData, facecolors = colors, edgecolors = edgecolors_test)
     PC_test.set_transform(mtransforms.IdentityTransform()) #+paths_test
-    plt.legend([PC_train, PC_test, line], ['P & N Train','P & N Test', 'True Model'], handler_map = {type(PC_train) : HandlerMultiPathCollection()}, scatterpoints = len(paths_train), scatteryoffsets = [.5], handlelength = len(paths_train))
+    plt.legend([PC_train, PC_test, line], ['Neg & Pos Train','Neg & Pos Test', 'True Model'], handler_map = {type(PC_train) : HandlerMultiPathCollection()}, scatterpoints = len(paths_train), scatteryoffsets = [.5], handlelength = len(paths_train))
     plt.savefig(path)

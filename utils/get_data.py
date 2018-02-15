@@ -4,7 +4,8 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-import scipy.spatial #import ConvexHull
+from scipy.spatial import ConvexHull
+from scipy.spatial import Delaunay
 #from sklearn import mixture
 
 def gaussian_mixture(n, means, covs, probs):
@@ -46,53 +47,82 @@ def get_data_sugiyama(n_train, n_test):
 
     return X_train, y_train, X_test, y_test
 
-def get_population_parameters(n_sides, r):
-    V_pyx = np.zeros(shape = (n_sides, 2))
-    mus = [] #np.zeros(shape = (n_sides, 2, 2))
-    covs = [] #np.zeros(shape = (n_sides, 2, 2, 2))
-    for n in range(n_sides):
-        V_pyx[n,:] = [r * math.cos(2*math.pi*n/n_sides), r * math.sin(2*math.pi*n/n_sides)]
-        mu_0 = np.array([(6.0/10) * r * math.cos(2*math.pi*((n+.5)/n_sides)), 
-                    (6.0/10) * r * math.sin(2*math.pi*((n+.5)/n_sides))])
-        mu_1 = np.array([(12.0/10) * r * math.cos(2*math.pi*((n+.5)/n_sides)), 
-                    (12.0/10) * r * math.sin(2*math.pi*((n+.5)/n_sides))])
+def in_hull(p, hull):
+    if not isinstance(hull,Delaunay):
+        hull = Delaunay(hull)
+    return hull.find_simplex(p)>=0
+
+def polygon_probability(X, n_clusters):
+    ngrid = 1000
+    rs = np.array(np.linspace(1e-10, 8, ngrid))
+    hulls = []
+    for n, r in np.ndenumerate(rs):
+        V = vertices_polygon(n_clusters, r)
+        hull = ConvexHull(V)
+        hulls.append(hull)
+    
+    rds = []
+    for c in range(n_clusters):
+        X_c = X[c][0]
+        nx = X_c.shape[0]
+        rxs = np.zeros(shape = (nx, 1))
+        for n in range(nx):
+            rxmin = 100
+            for h in range(ngrid):
+                if in_hull(X_c[n], hulls[n]) == True:
+                    rxmin = rs[h]
+                    break
+            rxs[n] = rxmin
+        rds.append(rxs)
+    return rds
+
+def vertices_polygon(n_clusters, r):
+    V = np.zeros(shape = (n_clusters, 2))
+    for c in range(n_clusters):
+        V[c,:] = [r * math.cos(2*math.pi*c/n_clusters), r * math.sin(2*math.pi*c/n_clusters)]
+    return V
+
+def get_population_parameters(n_clusters, r):
+    mus = []
+    covs = []
+    V = vertices_polygon(n_clusters, r)
+    for c in range(n_clusters):
+        mu_0 = np.array([(6.0/10) * r * math.cos(2*math.pi*((c+.5)/n_clusters)), 
+                    (6.0/10) * r * math.sin(2*math.pi*((c+.5)/n_clusters))])
+        mu_1 = np.array([(12.0/10) * r * math.cos(2*math.pi*((c+.5)/n_clusters)), 
+                    (12.0/10) * r * math.sin(2*math.pi*((c+.5)/n_clusters))])
         mus.append([mu_0, mu_1])
     
-    for n in range(n_sides):
-        edge = V_pyx[int(math.fmod(n+1,n_sides)),:]-V_pyx[n,:]
+    for c in range(n_clusters):
+        edge = V[int(math.fmod(c+1, n_clusters)),:]-V[c,:]
         edge = np.reshape(edge, (2, 1))
-        mu_0 = mus[n][0]
+        mu_0 = mus[c][0]
         mu_0 = np.reshape(mu_0, (2,1))
         cov_0 = (1.0/16) * np.matmul(mu_0, mu_0.T) + (1.0/32) * np.matmul(edge, edge.T)
         cov_1 = (1.0/16) * np.matmul(mu_0, mu_0.T) + (1.0/32) * np.matmul(edge, edge.T)
         covs.append([cov_0, cov_1])
-    return V_pyx, mus, covs
+    return V, mus, covs
 
 def get_data_experiment(n_clusters, n_samples, r):
-    V_pyx, mus, covs = get_population_parameters(n_sides=n_clusters, r=r)
+    V, mus, covs = get_population_parameters(n_clusters, r)
     label_probs = np.array([.5, .5])
 
-    n_cluster = n_samples/n_clusters
-    X_n = np.zeros(shape = (n_cluster, 3))
     X = []
-    for n in range(n_clusters):
-        #print(type(covs[n])); print(len(covs[n])); print(covs[n][0].shape)
-        X_n = gaussian_mixture(n_cluster, np.array(mus[n]), np.array([covs[n][0], covs[n][1]]), label_probs)
-        X_cluster = np.repeat(n, n_cluster)
-        X.append([X_n, X_cluster])
-    return V_pyx, mus, covs, X
+    n_cluster = n_samples/n_clusters
+    X_c = np.zeros(shape = (n_cluster, 3))
+    for c in range(n_clusters):
+        X_c = gaussian_mixture(n_cluster, np.array(mus[c]), 
+            np.array([covs[c][0], covs[c][1]]), label_probs)
+        X_cluster = np.repeat(c, n_cluster)
+        X.append([X_c, X_cluster])
+    return V, mus, covs, X
 
 def plot_polygon(V, mus, X, n_clusters):
-    #plot convex hull
-    hull = scipy.spatial.ConvexHull(V)
+    hull = ConvexHull(V)
     for simplex in hull.simplices:
         plt.plot(V[simplex,0], V[simplex,1], 'k-')
     
     #plot data
-    for n in range(n_clusters):
-        mu_0, mu_1 = mus[n][0], mus[n][1]
-        plt.plot(mu_0[0], mu_0[1], 'o')
-        plt.plot(mu_1[0], mu_1[1], 's')
     for n in range(n_clusters):
         X_n = X[n][0]
         plt.scatter(X_n[:,0], X_n[:,1])
@@ -100,12 +130,12 @@ def plot_polygon(V, mus, X, n_clusters):
     plt.show()
 
 def main():
-    #import utils.get_data as data
-    #import utils.plots as plots
     n_clusters, r = 7, 4
     n_samples = 500
-    V_pyx, mus, _, X = get_data_experiment(n_clusters, n_samples, r)
-    plot_polygon(V_pyx, mus, X, n_clusters)
+    V, mus, _, X = get_data_experiment(n_clusters, n_samples, r)
+    #plot_polygon(V, mus, X, n_clusters)
+
+    #ver = polygon_probability(X, n_clusters)
 
 if __name__ == '__main__':
     main()

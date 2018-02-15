@@ -61,6 +61,5 @@ def main():
     plots.graph_data_sugiyama1(config, data, path = root+'images/sugiyama1.png')
     plots.graph_data_sugiyama2(config, data, model0 = model, path = root+'images/sugiyama2.png')
 
-
 if __name__ == '__main__':
     main()
