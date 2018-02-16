@@ -124,11 +124,11 @@ def get_data_experiment(n_samples, n_clusters, r, n_grid):
 
     return X, Y, V
 
-def save_data_experiment(n_clusters, X, Y, path):
+def save_data_experiment(n_clusters, X, Y, V, path):
     shutil.rmtree(path)
     os.makedirs(path)
 
-    np.save(file = (path + 'y_') + str(c), arr = y_c)
+    np.save(file = (path + 'V'), arr = V)
     for c in range(n_clusters):
         X_c = np.column_stack((X[c][0],X[c][1])) 
         np.save(file = (path + 'X_') + str(c), arr = X_c)
@@ -137,10 +137,17 @@ def save_data_experiment(n_clusters, X, Y, path):
 
 def load_data_experiment(n_clusters, path):
     X, Y = [], []
+    V = np.load(file = (path + 'V.npy'))
     for c in range(n_clusters):
-        X_l = np.load(file = (path + 'X_') + str(c))
+        X_l = np.load(file = (path + 'X_' + str(c) + '.npy'))
         X_c, X_cluster = X_l[:,0:1], X_l[:,2]
         X.append([X_c, X_cluster])
-        y_c = np.load(file = (path + 'y_') + str(c))
+        y_c = np.load(file = (path + 'y_' + str(c) + '.npy'))
         Y.append(y_c)
-    return X, Y
+    return X, Y, V
+
+def parse_data_propscore(n_clusters, X):
+    X_propscore = np.stack([X[c][0] for c in range(n_clusters)])
+    y_propscore = np.stack([X[c][1] for c in range(n_clusters)])
+    return X_propscore, y_propscore
+

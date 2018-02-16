@@ -26,8 +26,6 @@ def main():
     import utils.get_data as data
     import utils.plots as plots
 
-    import matplotlib.pyplot as plt
-
     np.random.seed(seed=1234)
     root = '/Users/kdgutier/Desktop/cov_shift/'
     #
@@ -51,7 +49,6 @@ def main():
     plots.graph_data_experiment(n_clusters, X, Y, V, path=(root+'images/experiment2.png') )
 
     data.save_data_experiment(n_clusters, X, Y, V, path=(root + 'data/'))
-
     X, Y, V = data.load_data_experiment(n_clusters, path=(root + 'data/'))
 
 if __name__ == '__main__':
