@@ -7,8 +7,9 @@ from sklearn import svm
 import utils.get_data as data
 import utils.plots as plots
 
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
-#
+
 def svm_classifier(config, data):
     X_train, y_train = data["X_train"], data["y_train"]
     C = 1.0  # SVM regularization parameter
@@ -16,11 +17,15 @@ def svm_classifier(config, data):
     model.fit(X_train, y_train)
     return model
 
-def logistic_classifier(config, data):
-    X_train, y_train = data["X_train"], data["y_train"]
-    model = svm.SVC(kernel = 'linear',  gamma=0.7, C=C )
-    model.fit(X_train, y_train)
+def lda_propscores(n_clusters, X_propscore, X_train):
+    X_propscore, y_propscore = data.parse_data_propscore(n_clusters, X_propscore)
+    clf = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto').fit(X_propscore, y_propscore)
+    propscores  = clf.predict_proba(X_train)
+    return propscores
 
+def iw2s_logistic(n_clusters, X_propscore, X_train, X_test):
+    propscores  = lda_propscores(n_clusters, X_propscore, X_train)
+    print(propscores.shape)
 
 def main():
     import utils.get_data as data
@@ -50,6 +55,8 @@ def main():
 
     data.save_data_experiment(n_clusters, X, Y, V, path=(root + 'data/'))
     X, Y, V = data.load_data_experiment(n_clusters, path=(root + 'data/'))
+
+    data = data.split_data_experiment(n_clusters, X, Y)
 
 if __name__ == '__main__':
     main()

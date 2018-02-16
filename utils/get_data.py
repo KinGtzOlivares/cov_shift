@@ -146,8 +146,35 @@ def load_data_experiment(n_clusters, path):
         Y.append(y_c)
     return X, Y, V
 
-def parse_data_propscore(n_clusters, X):
-    X_propscore = np.stack([X[c][0] for c in range(n_clusters)])
-    y_propscore = np.stack([X[c][1] for c in range(n_clusters)])
+def split_data_experiment(n_clusters, X, Y, propscore_size = .1, test_size=.2):
+    X_propscore, X_train, X_test = [], [], []
+    Y_propscore, Y_train, Y_test = [], [], []
+    for c in range(n_clusters):
+        n_c = Y[c].shape[0]
+        n_propscore, n_test = int(n_c * propscore_size), int(n_c * test_size)
+        np.random.shuffle(X[c][0]); np.random.shuffle(X[c][1]); np.random.shuffle(Y[c])
+        
+        #Y
+        Y_propscore_c = Y[c][:n_propscore,:]
+        Y_test_c = Y[c][n_propscore:(n_propscore+n_test),:]
+        Y_train_c = Y[c][(n_propscore+n_test):,:]
+        Y_propscore.append(Y_propscore_c); Y_train.append(Y_train_c); Y_test.append(Y_test_c)
+
+        #X
+        X_c, X_cluster = X[c][0], X[c][1]
+        X_propscore_c = [ X_c[:n_propscore,:], X_cluster[:n_propscore,:] ]
+        X_test_c = [ X_c[n_propscore:(n_propscore+n_test),:], X_cluster[n_propscore:(n_propscore+n_test),:] ]
+        X_train_c = [ X_c[(n_propscore+n_test):,:], X_cluster[(n_propscore+n_test):,:] ]
+        X_propscore.append(X_propscore_c); X_train.append(X_train_c); X_test.append(X_test_c)
+
+    data = {'X_propscore': X_propscore, 'X_test': X_test, 'X_train': X_train, 
+            'Y_propscore': Y_propscore, 'Y_test': Y_test, 'Y_train': Y_train}
+    return data
+
+def parse_data_propscore(n_clusters, X_propscore):
+    X_propscore = np.stack([X_propscore[c][0] for c in range(n_clusters)])
+    y_propscore = np.stack([X_propscore[c][1] for c in range(n_clusters)])
     return X_propscore, y_propscore
+
+
 
