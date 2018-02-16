@@ -7,40 +7,19 @@ from sklearn import svm
 import utils.get_data as data
 import utils.plots as plots
 
-#mu_vec1 = np.array([0,0])
-#cov_mat1 = np.array([[2,0],[0,2]])
-#x1_samples = np.random.multivariate_normal(mu_vec1, cov_mat1, 100)
-#mu_vec1 = mu_vec1.reshape(1,2).T # to 1-col vector
-#
-#mu_vec2 = np.array([1,2])
-#cov_mat2 = np.array([[1,0],[0,1]])
-#x2_samples = np.random.multivariate_normal(mu_vec2, cov_mat2, 100)
-#mu_vec2 = mu_vec2.reshape(1,2).T
-#
-#
-#fig = plt.figure()
-#
-#
-#plt.scatter(x1_samples[:,0],x1_samples[:,1], marker='+')
-#plt.scatter(x2_samples[:,0],x2_samples[:,1], c= 'green', marker='o')
-#
-#X = np.concatenate((x1_samples,x2_samples), axis = 0)
-#Y = np.array([0]*100 + [1]*100)
+from sklearn.linear_model import LogisticRegression
 #
 def svm_classifier(config, data):
     X_train, y_train = data["X_train"], data["y_train"]
     C = 1.0  # SVM regularization parameter
     model = svm.SVC(kernel = 'linear',  gamma=0.7, C=C )
     model.fit(X_train, y_train)
-    #
-    #w = clf.coef_[0]
-    #a = -w[0] / w[1]
-    #xx = np.linspace(-5, 5)
-    #yy = a * xx - (clf.intercept_[0]) / w[1]
-    #
-    #plt.plot(xx, yy, 'k-')
-    #plt.show()
     return model
+
+def logistic_classifier(config, data):
+    X_train, y_train = data["X_train"], data["y_train"]
+    model = svm.SVC(kernel = 'linear',  gamma=0.7, C=C )
+    model.fit(X_train, y_train)
 
 
 def main():
@@ -68,10 +47,12 @@ def main():
 
     n_clusters, r, n_grid = 6, 4, 20
     n_samples = 120
-    V, mus, covs, X, Y, rds = data.get_data_experiment(n_samples, n_clusters, r, n_grid)
-    plots.graph_data_experiment(V, mus, X, Y, n_clusters, path=(root+'images/experiment2.png') )
+    X, Y, V = data.get_data_experiment(n_samples, n_clusters, r, n_grid)
+    plots.graph_data_experiment(n_clusters, X, Y, V, path=(root+'images/experiment2.png') )
 
-    data.save_data_experiment(n_clusters, X, Y, path=(root + 'data/'))
+    data.save_data_experiment(n_clusters, X, Y, V, path=(root + 'data/'))
+
+    X, Y, V = data.load_data_experiment(n_clusters, path=(root + 'data/'))
 
 if __name__ == '__main__':
     main()

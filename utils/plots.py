@@ -175,7 +175,7 @@ def graph_data_sugiyama2(config, data, model0, path):
     plt.legend([PC_train, PC_test, line], ['Neg & Pos Train','Neg & Pos Test', r'$P(y|X)=1/2$'], handler_map = {type(PC_train) : HandlerMultiPathCollection()}, scatterpoints = len(paths_train), scatteryoffsets = [.5], handlelength = len(paths_train))
     plt.savefig(path)
 
-def graph_data_experiment(V, mus, X, Y, n_clusters, path):    
+def graph_data_experiment(n_clusters, X, Y, V, path):    
     #colors
     fig, ax = plt.subplots()
     cm0, cm1 = pylab.get_cmap('Blues'), pylab.get_cmap('Oranges')

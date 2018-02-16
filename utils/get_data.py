@@ -120,17 +120,27 @@ def get_data_experiment(n_samples, n_clusters, r, n_grid):
         X_cluster = np.repeat(c, n_cluster)
         X.append([X_c, X_cluster])
     
-    Y, rds = conditional_polygon(X, n_clusters, r, n_grid)
+    Y, _ = conditional_polygon(X, n_clusters, r, n_grid)
 
-    return V, mus, covs, X, Y, rds
+    return X, Y, V
 
 def save_data_experiment(n_clusters, X, Y, path):
     shutil.rmtree(path)
     os.makedirs(path)
+
+    np.save(file = (path + 'y_') + str(c), arr = y_c)
     for c in range(n_clusters):
         X_c = np.column_stack((X[c][0],X[c][1])) 
         np.save(file = (path + 'X_') + str(c), arr = X_c)
         y_c = Y[c]
         np.save(file = (path + 'y_') + str(c), arr = y_c)
 
-    
+def load_data_experiment(n_clusters, path):
+    X, Y = [], []
+    for c in range(n_clusters):
+        X_l = np.load(file = (path + 'X_') + str(c))
+        X_c, X_cluster = X_l[:,0:1], X_l[:,2]
+        X.append([X_c, X_cluster])
+        y_c = np.load(file = (path + 'y_') + str(c))
+        Y.append(y_c)
+    return X, Y
