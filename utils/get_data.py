@@ -3,10 +3,10 @@
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
 from scipy.optimize import linprog
-#from sklearn import mixture
+
+import shutil
+import os
 
 def gaussian_mixture(n, means, covs, probs):
     k, d = means.shape[0], means.shape[1]
@@ -60,10 +60,10 @@ def vertices_polygon(n_clusters, r):
     return V
 
 def conditional_polygon(X, n_clusters, r, n_grid):
-    rs = np.array(np.linspace(1e-10, 8, n_grid))
+    rs = np.array(np.linspace(1e-10, 10, n_grid))
     Vs = []
-    for n, r in np.ndenumerate(rs):
-        V = vertices_polygon(n_clusters, r)
+    for h, rd in np.ndenumerate(rs):
+        V = vertices_polygon(n_clusters, rd)
         Vs.append(V)
     
     rds = []
@@ -75,12 +75,12 @@ def conditional_polygon(X, n_clusters, r, n_grid):
         ys = np.zeros(shape = (nx, 1))
         for n in range(nx):
             rxsup = 100
-            for h in range(n_grid):
-                if in_hull(Vs[n], X_c[n]) == True:
-                    rxsup = rs[h]
+            for h, rd in np.ndenumerate(rs):
+                if in_hull(Vs[h[0]], X_c[n]) == True:
+                    rxsup = rd
                     break
             rxs[n] = rxsup
-            p = .5 * (1 + math.tanh(rxsup-r))
+            p = .5 * (1 + math.tanh(.5 * (rxsup-r) )) # 100 *
             ys[n] = np.random.choice([0, 1], p = [p, 1-p])
         rds.append(rxs)
         Y.append(ys)
@@ -91,8 +91,8 @@ def get_population_parameters(n_clusters, r):
     covs = []
     V = vertices_polygon(n_clusters, r)
     for c in range(n_clusters):
-        mu_0 = np.array([(6.0/10) * r * math.cos(2*math.pi*((c+.5)/n_clusters)), 
-                    (6.0/10) * r * math.sin(2*math.pi*((c+.5)/n_clusters))])
+        mu_0 = np.array([(4.0/10) * r * math.cos(2*math.pi*((c+.5)/n_clusters)), 
+                    (4.0/10) * r * math.sin(2*math.pi*((c+.5)/n_clusters))])
         mu_1 = np.array([(12.0/10) * r * math.cos(2*math.pi*((c+.5)/n_clusters)), 
                     (12.0/10) * r * math.sin(2*math.pi*((c+.5)/n_clusters))])
         mus.append([mu_0, mu_1])
@@ -100,56 +100,37 @@ def get_population_parameters(n_clusters, r):
     for c in range(n_clusters):
         edge = V[int(math.fmod(c+1, n_clusters)),:]-V[c,:]
         edge = np.reshape(edge, (2, 1))
-        mu_0 = mus[c][0]
-        mu_0 = np.reshape(mu_0, (2,1))
-        cov_0 = (1.0/16) * np.matmul(mu_0, mu_0.T) + (1.0/32) * np.matmul(edge, edge.T)
-        cov_1 = (1.0/16) * np.matmul(mu_0, mu_0.T) + (1.0/32) * np.matmul(edge, edge.T)
+        mu_1 = mus[c][1]
+        mu_1 = np.reshape(mu_0, (2,1))
+        cov_0 = (1.0/16) * np.matmul(mu_1, mu_1.T) + (1.0/32) * np.matmul(edge, edge.T)
+        cov_1 = (1.0/16) * np.matmul(mu_1, mu_1.T) + (1.0/32) * np.matmul(edge, edge.T)
         covs.append([cov_0, cov_1])
     return V, mus, covs
 
 def get_data_experiment(n_samples, n_clusters, r, n_grid):
     V, mus, covs = get_population_parameters(n_clusters, r)
-    label_probs = np.array([.5, .5])
+    c_probs = np.array([.5, .5])
 
     X = []
     n_cluster = n_samples/n_clusters
     X_c = np.zeros(shape = (n_cluster, 3))
     for c in range(n_clusters):
         X_c = gaussian_mixture(n_cluster, np.array(mus[c]), 
-            np.array([covs[c][0], covs[c][1]]), label_probs)
+            np.array([covs[c][0], covs[c][1]]), c_probs)
         X_cluster = np.repeat(c, n_cluster)
         X.append([X_c, X_cluster])
     
-    Y, _ = conditional_polygon(X, n_clusters, r, n_grid)
+    Y, rds = conditional_polygon(X, n_clusters, r, n_grid)
 
-    return V, mus, covs, X, Y
+    return V, mus, covs, X, Y, rds
 
-def plot_polygon(V, mus, X, Y, n_clusters):
-    hull = ConvexHull(V)
-    for simplex in hull.simplices:
-        plt.plot(V[simplex,0], V[simplex,1], 'k-')
-    
-    #plot data
+def save_data_experiment(n_clusters, X, Y, path):
+    shutil.rmtree(path)
+    os.makedirs(path)
     for c in range(n_clusters):
-        X_c, y_c = X[c][0], Y[c]
-        y_c = y_c.flatten().tolist()
-        colors_c = ["#E99F51" if y <=0 else "#386D9D" for y in y_c]
-        plt.scatter(X_c[:,0], X_c[:,1], c=colors_c)
-    plt.axis('equal')
-    plt.show()
-
-def main():
-    n_clusters, r, n_grid = 6, 4, 20
-    n_samples = 70
-    V, mus, covs, X, Y = get_data_experiment(n_samples, n_clusters, r, n_grid)
-    plot_polygon(V, mus, X, Y, n_clusters)
-
-    #n_grid = 20
-    #ver = conditional_polygon(X, n_clusters, n_grid)
-    #print(len(ver))
-    #print(ver[0])
-
-if __name__ == '__main__':
-    main()
+        X_c = np.column_stack((X[c][0],X[c][1])) 
+        np.save(file = (path + 'X_') + str(c), arr = X_c)
+        y_c = Y[c]
+        np.save(file = (path + 'y_') + str(c), arr = y_c)
 
     

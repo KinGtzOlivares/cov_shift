@@ -3,12 +3,18 @@
 import numpy as np
 import math
 import scipy.stats as st
+from scipy.spatial import ConvexHull
 
 import matplotlib.pyplot as plt
 import matplotlib.collections as mcol
 import matplotlib.transforms as mtransforms
 from matplotlib.legend_handler import HandlerPathCollection
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 from matplotlib import cm
+
+import pylab
+from matplotlib.colors import rgb2hex
 
 def graph_data_sugiyama1(config, data, path):
     X_train, X_test = data["X_train"], data["X_test"]
@@ -166,5 +172,34 @@ def graph_data_sugiyama2(config, data, model0, path):
     PC_train.set_transform(mtransforms.IdentityTransform())
     PC_test = mcol.PathCollection(paths_test, sizes_test, transOffset = ax.transData, facecolors = colors, edgecolors = edgecolors_test)
     PC_test.set_transform(mtransforms.IdentityTransform()) #+paths_test
-    plt.legend([PC_train, PC_test, line], ['Neg & Pos Train','Neg & Pos Test', 'True Model'], handler_map = {type(PC_train) : HandlerMultiPathCollection()}, scatterpoints = len(paths_train), scatteryoffsets = [.5], handlelength = len(paths_train))
+    plt.legend([PC_train, PC_test, line], ['Neg & Pos Train','Neg & Pos Test', r'$P(y|X)=1/2$'], handler_map = {type(PC_train) : HandlerMultiPathCollection()}, scatterpoints = len(paths_train), scatteryoffsets = [.5], handlelength = len(paths_train))
+    plt.savefig(path)
+
+def graph_data_experiment(V, mus, X, Y, n_clusters, path):    
+    #colors
+    fig, ax = plt.subplots()
+    cm0, cm1 = pylab.get_cmap('Blues'), pylab.get_cmap('Oranges')
+    colors0, colors1 = {}, {}
+    for c in range(n_clusters):
+        rgb0, rgb1 = cm0((1.*(.5*n_clusters + .25*c))/n_clusters), cm1((1.*(.5*n_clusters + .25*c))/n_clusters)
+        colors0[c], colors1[c] = rgb2hex(rgb0), rgb2hex(rgb1)
+    
+    #plot data
+    plots = []
+    for c in range(n_clusters):
+        X_c, y_c = X[c][0], Y[c]
+        y_c = y_c.flatten().tolist()
+        colors_c = [colors0[c] if y <=0 else colors1[c] for y in y_c]
+        ec_colors = ["#F1F0EE"] * len(colors_c)
+        plot = plt.scatter(X_c[:,0], X_c[:,1], c=colors_c, edgecolors=ec_colors, label = "Task "+str(c+1) )
+        plots.append(plot)
+
+    hull = ConvexHull(V)
+    for simplex in hull.simplices:
+        plt.plot(V[simplex,0], V[simplex,1], 'k-')
+
+    plt.axis('equal')
+    plt.ylim( (-8, 8) )
+    plt.xlim( (-8, 11))
+    #plt.legend(handles=legend_elements, loc="upper right", ncol = 2) #bbox_to_anchor=(1.04,1)
     plt.savefig(path)
