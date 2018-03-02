@@ -175,7 +175,7 @@ def graph_data_sugiyama2(config, data, model0, path):
     plt.legend([PC_train, PC_test, line], ['Neg & Pos Train','Neg & Pos Test', r'$P(y|X)=1/2$'], handler_map = {type(PC_train) : HandlerMultiPathCollection()}, scatterpoints = len(paths_train), scatteryoffsets = [.5], handlelength = len(paths_train))
     plt.savefig(path)
 
-def graph_data_experiment(n_clusters, X, Y, V, path):    
+def graph_data_experiment(n_clusters, X, Y, V, path=None):    
     #colors
     fig, ax = plt.subplots()
     cm0, cm1 = pylab.get_cmap('Blues'), pylab.get_cmap('Oranges')
@@ -202,4 +202,45 @@ def graph_data_experiment(n_clusters, X, Y, V, path):
     plt.ylim( (-8, 8) )
     plt.xlim( (-8, 11))
     #plt.legend(handles=legend_elements, loc="upper right", ncol = 2) #bbox_to_anchor=(1.04,1)
-    plt.savefig(path)
+    if path==None: plt.show()
+    else: plt.savefig(path)
+    plt.close()
+
+def objective_vall(n_clusters, objective_c, propscores):
+    proxy_clusters = [objective_c, objective_c + n_clusters]
+    objective = propscores[:, proxy_clusters]
+    objective = np.sum(objective, axis=1)
+    complement = np.delete(propscores, proxy_clusters, axis=1)
+    complement = np.sum(complement, axis=1)
+    objective_vall = np.column_stack((objective, complement))
+    return objective_vall
+
+def graph_proxy_cluster(n_clusters, X, V, propscores, objective_c, path=None):
+    color_cluster = objective_vall(n_clusters, objective_c, propscores)[:,0]
+    cm = plt.cm.get_cmap('BuPu')
+    
+    X = np.vstack([np.array(X[c][0]) for c in range(n_clusters)])
+    scatter = plt.scatter(X[:,0], X[:,1], c=color_cluster, cmap=cm)
+
+    hull = ConvexHull(V)
+    for simplex in hull.simplices:
+        plt.plot(V[simplex,0], V[simplex,1], 'k-')
+    
+    plt.axis('equal')
+    plt.ylim( (-8, 8) )
+    plt.xlim( (-8, 11))
+    
+    plt.colorbar(scatter)
+
+def graph_first_stage(n_clusters, df, V, propscores, path=None):
+    plt.clf()
+    fig = plt.figure(figsize=(18, 9.5))
+
+    for c in range(n_clusters):
+        plt.subplot(2,3,(c+1))
+        graph_proxy_cluster(n_clusters, df['X_train'], V, propscores, c)
+
+    plt.suptitle('Distribution Matching', fontsize=20, x=.5, y=.95)
+    if path==None: plt.show()
+    else: plt.savefig(path)
+    plt.close()
