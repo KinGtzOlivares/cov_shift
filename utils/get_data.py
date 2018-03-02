@@ -180,4 +180,9 @@ def parse_data_propscore(n_clusters, X_propscore, y_propscore):
     proxy_cluster = proxy_cluster.astype(int)
     return X, y, proxy_cluster
 
-
+def parse_data(n_clusters, X_propscore, y_propscore):
+    X = np.vstack([np.array(X_propscore[c][0]) for c in range(n_clusters)])
+    y = np.concatenate([np.array(y_propscore[c]).flatten() for c in range(n_clusters)])
+    
+    clusters = np.concatenate([np.array(X_propscore[c][1]).flatten() for c in range(n_clusters)])
+    return X, y, clusters
